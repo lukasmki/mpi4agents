@@ -2,6 +2,8 @@
 
 A proof of concept implementation of multi-agent systems parallelized over MPI.
 
+Docs: http://lukasmki.github.io/mpi4agents/
+
 ## Multi-agent Systems (MAS) from communication patterns
 
 Some standard communication patterns:
