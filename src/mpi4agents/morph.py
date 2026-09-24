@@ -64,7 +64,7 @@ class MorphAgent(LLMAgent):
             "answer. Reply with the full revised answer only.",
         )
 
-    def run(self, prompt: str | None = None) -> str:
+    def run(self, prompt: str) -> str:
         draft = ""
         history = []
         for iround in range(self.rounds):

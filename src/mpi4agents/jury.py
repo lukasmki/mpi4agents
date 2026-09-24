@@ -26,7 +26,7 @@ class JuryAgent(LLMAgent):
         n = int(match.group()) if match else 0
         return choices[n] if n < len(choices) else choices[0]
 
-    def run(self, prompt: str | None = None) -> str:
+    def run(self, prompt: str) -> str:
         candidate = self.propose(prompt)
         candidates = self.allgather(candidate)
         votes = self.allgather(self.vote(prompt, candidates))

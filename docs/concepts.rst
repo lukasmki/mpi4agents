@@ -55,6 +55,6 @@ call, and implement ``run`` using the communication methods:
    class EchoAgent(LLMAgent):
        """Rank 0 answers, then broadcasts its answer to every rank"""
 
-       def run(self, prompt: str | None = None) -> str:
+       def run(self, prompt: str) -> str:
            answer = self.ask(prompt, "Answer concisely.") if self.rank == 0 else None
            return self.bcast(answer)

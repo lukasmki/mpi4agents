@@ -14,7 +14,7 @@ SIZE = comm.Get_size()
 
 def main():
     parser = ArgumentParser()
-    parser.add_argument("--prompt", type=str)
+    parser.add_argument("--prompt", type=str, required=True)
     parser.add_argument("--steps", type=int, default=4)
     parser.add_argument("--period", type=int, default=2)
     args = parser.parse_args()

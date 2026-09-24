@@ -41,7 +41,7 @@ class GridAgent(LLMAgent):
                 neighbors[name] = self.sendrecv(dest=dst, msg=msg, source=src).payload
         return neighbors
 
-    def run(self, prompt: str | None = None) -> str:
+    def run(self, prompt: str) -> str:
         position = self.draft(prompt)
         for _ in range(self.steps):
             position = self.update(prompt, position, self.exchange(position))

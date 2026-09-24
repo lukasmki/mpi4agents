@@ -45,7 +45,7 @@ class AdversarialAgent(LLMAgent):
             "your answer and make it more convincing. Reply with the revised answer only.",
         )
 
-    def run(self, prompt: str | None = None) -> str:
+    def run(self, prompt: str) -> str:
         if self.is_proposer:
             answer = self.draft(prompt)
             for iround in range(self.rounds):

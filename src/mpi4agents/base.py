@@ -114,7 +114,7 @@ class BaseAgent(ABC):
         """Block until all ranks reach this point"""
         self.comm.barrier()
 
-    def run(self, prompt: str | None = None):
+    def run(self, prompt: str):
         """Run the agent's communication pattern. Must be called on every rank."""
         raise NotImplementedError
 
@@ -147,13 +147,15 @@ class LLMAgent(BaseAgent):
         return result.output
 
 
-class EventAgent(BaseAgent):
+class EventAgent(LLMAgent):
     """Agent that loops forever, dispatching received messages to handlers by ``kind``
 
     Register handlers with the :meth:`on` decorator.
     """
 
-    handlers = {}
+    def __init__(self, comm: MPI.Comm, model: Model):
+        super().__init__(comm=comm, model=model)
+        self.handlers = {}
 
     def on(self, kind):
         """Decorator registering fn as the handler for messages of this kind"""
@@ -164,7 +166,7 @@ class EventAgent(BaseAgent):
 
         return decorator
 
-    def run(self, prompt: str | None = None):
+    def run(self, prompt: str):
         """Receive messages forever and call the matching handler"""
         while True:
             msg = self.recv()

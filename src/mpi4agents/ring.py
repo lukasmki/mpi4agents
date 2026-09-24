@@ -16,7 +16,7 @@ class RingAgent(LLMAgent):
             "Reply with the revised answer only.",
         )
 
-    def run(self, prompt: str | None = None) -> str:
+    def run(self, prompt: str) -> str:
         dst = (self.rank + 1) % self.size
         src = (self.rank - 1) % self.size
 

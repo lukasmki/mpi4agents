@@ -61,5 +61,5 @@ class BlackboardAgent(LLMAgent):
         self.send(dest=0, msg=MPIMessage(self.rank, "DONE", None), tag=Tag.SYS)
         return "\n\n".join(entries)
 
-    def run(self, prompt: str | None = None) -> str:
+    def run(self, prompt: str) -> str:
         return self.serve(prompt) if self.rank == 0 else self.source(prompt)

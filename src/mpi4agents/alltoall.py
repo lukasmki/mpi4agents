@@ -31,7 +31,7 @@ class AllToAllAgent(LLMAgent):
             "Revise YOUR ANSWER using the FEEDBACK you agree with. Reply with the revised answer only.",
         )
 
-    def run(self, prompt: str | None = None) -> str:
+    def run(self, prompt: str) -> str:
         answer = self.draft(prompt)
         for _ in range(self.rounds):
             answers = self.allgather(answer)

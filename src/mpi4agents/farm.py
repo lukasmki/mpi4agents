@@ -75,5 +75,5 @@ class FarmAgent(LLMAgent):
             log.append(f"SUBTASK {index}: {task}\n\n{result}")
         return "\n\n".join(log)
 
-    def run(self, prompt: str | None = None) -> str:
+    def run(self, prompt: str) -> str:
         return self.manage(prompt) if self.rank == 0 else self.work(prompt)

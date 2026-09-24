@@ -14,7 +14,7 @@ SIZE = comm.Get_size()
 
 def main():
     parser = ArgumentParser()
-    parser.add_argument("--prompt", type=str)
+    parser.add_argument("--prompt", type=str, required=True)
     parser.add_argument("--max-supersteps", type=int, default=3)
     args = parser.parse_args()
 

@@ -21,7 +21,7 @@ class TreeAgent(LLMAgent):
             "Keep every correct point, drop duplicates and resolve contradictions.",
         )
 
-    def run(self, prompt: str | None = None) -> str:
+    def run(self, prompt: str) -> str:
         answer = self.draft(prompt)
 
         # wait on the subtree below, then merge it into this rank's answer

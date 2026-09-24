@@ -30,7 +30,7 @@ class BSPAgent(LLMAgent):
         )
         return None if output.strip() == UNCHANGED else output
 
-    def run(self, prompt: str | None = None) -> str:
+    def run(self, prompt: str) -> str:
         answer = self.draft(prompt)
         inbox = self.allgather(answer)
 

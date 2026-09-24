@@ -55,7 +55,7 @@ class HaloAgent(LLMAgent):
             from_right.payload if from_right else None,
         )
 
-    def run(self, prompt: str | None = None) -> str:
+    def run(self, prompt: str) -> str:
         titles = self.bcast(self.outline(prompt) if self.rank == 0 else None)
 
         section = self.write(prompt, titles, None, None, "")

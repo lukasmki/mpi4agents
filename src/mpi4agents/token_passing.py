@@ -33,7 +33,7 @@ class TokenAgent(LLMAgent):
             "Describe the change from BEFORE to AFTER in one short sentence.",
         )
 
-    def run(self, prompt: str | None = None) -> str:
+    def run(self, prompt: str) -> str:
         dst = (self.rank + 1) % self.size
         src = (self.rank - 1) % self.size
 

@@ -27,7 +27,7 @@ class PipeAgent(LLMAgent):
             "If the RESPONSE is empty, give an initial answer.",
         )
 
-    def run(self, prompt: str | None = None) -> str:
+    def run(self, prompt: str) -> str:
         # all stages prepare context before the answer reaches them
         context = self.context(prompt)
 

@@ -41,7 +41,7 @@ class HierarchyAgent(LLMAgent):
             "disagrees, and give a short directive on what everyone should focus on next.",
         )
 
-    def run(self, prompt: str | None = None) -> str:
+    def run(self, prompt: str) -> str:
         dst = (self.rank + 1) % self.size
         src = (self.rank - 1) % self.size
 
