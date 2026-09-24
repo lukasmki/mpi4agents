@@ -1,34 +1,30 @@
-from typing import Any
-
-from mpi4py import MPI
-from pydantic_ai import Agent
-from pydantic_ai.models import Model
-
-from mpi4agents.base import BaseAgent, MPIMessage
+from mpi4agents.base import LLMAgent, MPIMessage
 
 
-class RingAgent(BaseAgent):
-    def __init__(self, comm: MPI.Comm, model: Model):
-        super().__init__(comm=comm)
-        self.agent = Agent(model=model)
+class RingAgent(LLMAgent):
+    """Ring: every rank drafts an answer, then for size - 1 steps passes the answer it last
+    received on to rank + 1. Each rank sees every other rank's draft exactly once and
+    revises its own answer after each one."""
 
-    def process(self, data: dict[str, Any]):
-        pass
+    def draft(self, prompt: str) -> str:
+        return self.ask(prompt, "Answer the PROMPT concisely.")
 
-    def run(self, prompt: str | None = None):
-        # get answer
+    def revise(self, prompt: str, answer: str, other: str) -> str:
+        return self.ask(
+            f"PROMPT:\n\n\t{prompt}\n\nYOUR ANSWER:\n\n{answer}\n\nOTHER ANSWER:\n\n{other}",
+            "Revise YOUR ANSWER using anything correct from the OTHER ANSWER. "
+            "Reply with the revised answer only.",
+        )
 
-        data = {"origin": self.rank, "prompt": prompt}
-
-        msg = MPIMessage(self.rank, "TASK", data)
+    def run(self, prompt: str | None = None) -> str:
         dst = (self.rank + 1) % self.size
         src = (self.rank - 1) % self.size
-        for istep in range(self.size - 1):
-            print(
-                f"Rank {self.rank} forwarding data from {msg.payload['origin']}, {msg.payload['prompt']}"
-            )
+
+        answer = self.draft(prompt)
+        msg = MPIMessage(self.rank, "ANSWER", answer)
+        for _ in range(self.size - 1):
+            # forward the draft received last step, so drafts travel all the way around
             msg = self.sendrecv(dest=dst, msg=msg, source=src)
-            # revise answer based on other answer
-            print(
-                f"Rank {self.rank} received data from Rank {msg.payload['origin']}, {msg.payload['prompt']}"
-            )
+            answer = self.revise(prompt, answer, msg.payload)
+
+        return answer

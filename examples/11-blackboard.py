@@ -5,7 +5,7 @@ from rich.markdown import Markdown
 from mpi4py import MPI
 
 from _common import MODEL
-from mpi4agents.ring import RingAgent
+from mpi4agents.blackboard import BlackboardAgent
 
 comm = MPI.COMM_WORLD
 RANK = comm.Get_rank()
@@ -15,9 +15,10 @@ SIZE = comm.Get_size()
 def main():
     parser = ArgumentParser()
     parser.add_argument("--prompt", type=str)
+    parser.add_argument("--rounds", type=int, default=2)
     args = parser.parse_args()
 
-    agent = RingAgent(comm, MODEL)
+    agent = BlackboardAgent(comm, MODEL, rounds=args.rounds)
     result = agent.run(args.prompt)
 
     console = Console()

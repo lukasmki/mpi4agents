@@ -1,81 +1,40 @@
-from pydantic import BaseModel
-from typing import Any
-
-from mpi4py import MPI
-from pydantic_ai import Agent
-from pydantic_ai.models import Model
-
-from mpi4agents.base import BaseAgent, MPIMessage
+from mpi4agents.base import LLMAgent, MPIMessage
 
 
-class PipeMessage(BaseModel):
-    origin: int
-    prompt: str | None
-    context: str = ""
-    response: str = ""
+class PipeAgent(LLMAgent):
+    """Pipeline: rank 0 writes an initial answer and each following rank refines the answer
+    from the previous stage before passing it on. Every stage gathers its context up front,
+    in parallel, so only the refinement is serialized. The last rank holds the final answer."""
 
-    def serialize(self):
-        return "\n\n".join(
-            [
-                f"PROMPT:\n\n\t{self.prompt}",
-                f"CONTEXT:\n\n{self.context}",
-                f"RESPONSE:\n\n{self.response}",
-            ]
+    def context(self, prompt: str) -> str:
+        return self.ask(
+            prompt,
+            "State a one sentence thesis of your answer, then "
+            "list key facts relevant to answering the PROMPT.",
         )
 
-
-class PipeAgent(BaseAgent):
-    def __init__(self, comm: MPI.Comm, model: Model):
-        super().__init__(comm=comm)
-        self.agent = Agent(model=model)
-
-    def get_context(self, data: PipeMessage) -> str:
-        result = self.agent.run_sync(
-            user_prompt=data.serialize(),
-            instructions=(
-                "State a one sentence thesis of your answer, then ",
-                "list key facts relevant to answering the PROMPT.",
+    def refine(self, prompt: str, context: str, answer: str) -> str:
+        return self.ask(
+            "\n\n".join(
+                [
+                    f"PROMPT:\n\n\t{prompt}",
+                    f"CONTEXT:\n\n{context}",
+                    f"RESPONSE:\n\n{answer or '(empty)'}",
+                ]
             ),
+            "Answer the given PROMPT by adding clarifying information to the previous RESPONSE. "
+            "Use the CONTEXT to inform your changes. "
+            "If the RESPONSE is empty, give an initial answer.",
         )
-        return result.output
-
-    def get_response(self, data: PipeMessage) -> str:
-        result = self.agent.run_sync(
-            user_prompt=data.serialize(),
-            instructions=(
-                "Answer the given PROMPT by adding clarifying information to the previous RESPONSE. ",
-                "Use the CONTEXT to inform your changes. ",
-                "If the RESPONSE is empty, give an initial answer.",
-            ),
-        )
-        return result.output
 
     def run(self, prompt: str | None = None) -> str:
-        # all ranks generate initial response
-        data = PipeMessage(origin=self.rank, prompt=prompt)
-        data.context = self.get_context(data)
+        # all stages prepare context before the answer reaches them
+        context = self.context(prompt)
 
-        if self.rank == 0:
-            # generate from prompt and forward
-            data.response = self.get_response(data)
-            msg = MPIMessage(self.rank, "TASK", data.model_dump())
-            self.send(dest=self.rank + 1, msg=msg)
+        answer = "" if self.rank == 0 else self.recv(source=self.rank - 1).payload
+        answer = self.refine(prompt, context, answer)
 
-        elif self.rank < self.size - 1:
-            # receive, modify, and send
-            msg = self.recv(source=self.rank - 1)
-            # print(f"Rank {self.rank} received data from Rank {msg.payload['origin']}")
-            data.response = msg.payload["response"]
-            data.response = self.get_response(data)
+        if self.rank < self.size - 1:
+            self.send(dest=self.rank + 1, msg=MPIMessage(self.rank, "ANSWER", answer))
 
-            msg = MPIMessage(self.rank, "TASK", data.model_dump())
-            self.send(dest=self.rank + 1, msg=msg)
-            # print(f"Rank {self.rank} forwarding data from {msg.payload['origin']}")
-        else:
-            # receive, modify, and return
-            msg = self.recv(source=self.rank - 1)
-            # print(f"Rank {self.rank} received data from Rank {msg.payload['origin']}")
-            data.response = msg.payload["response"]
-            data.response = self.get_response(data)
-
-        return data.serialize()
+        return answer

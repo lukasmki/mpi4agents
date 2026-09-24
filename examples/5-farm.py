@@ -5,7 +5,7 @@ from rich.markdown import Markdown
 from mpi4py import MPI
 
 from _common import MODEL
-from mpi4agents.ring import RingAgent
+from mpi4agents.farm import FarmAgent
 
 comm = MPI.COMM_WORLD
 RANK = comm.Get_rank()
@@ -17,7 +17,7 @@ def main():
     parser.add_argument("--prompt", type=str)
     args = parser.parse_args()
 
-    agent = RingAgent(comm, MODEL)
+    agent = FarmAgent(comm, MODEL)
     result = agent.run(args.prompt)
 
     console = Console()
