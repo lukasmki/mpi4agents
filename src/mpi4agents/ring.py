@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+
 from mpi4agents.base import LLMAgent, MPIMessage
 
 
@@ -16,15 +18,15 @@ class RingAgent(LLMAgent):
             "Reply with the revised answer only.",
         )
 
-    def run(self, prompt: str) -> str:
+    def irun(self, prompt: str) -> Iterator[str]:
         dst = (self.rank + 1) % self.size
         src = (self.rank - 1) % self.size
 
         answer = self.draft(prompt)
+        yield answer
         msg = MPIMessage(self.rank, "ANSWER", answer)
         for _ in range(self.size - 1):
             # forward the draft received last step, so drafts travel all the way around
             msg = self.sendrecv(dest=dst, msg=msg, source=src)
             answer = self.revise(prompt, answer, msg.payload)
-
-        return answer
+            yield answer

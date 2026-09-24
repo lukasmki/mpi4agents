@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+
 from mpi4py import MPI
 from pydantic_ai.models import Model
 
@@ -41,11 +43,12 @@ class HierarchyAgent(LLMAgent):
             "disagrees, and give a short directive on what everyone should focus on next.",
         )
 
-    def run(self, prompt: str) -> str:
+    def irun(self, prompt: str) -> Iterator[str]:
         dst = (self.rank + 1) % self.size
         src = (self.rank - 1) % self.size
 
         answer = self.draft(prompt)
+        yield answer
         directive = ""
         for step in range(self.steps):
             # flat phase: peer-to-peer exchange with ring neighbors
@@ -53,6 +56,7 @@ class HierarchyAgent(LLMAgent):
                 dest=dst, msg=MPIMessage(self.rank, "ANSWER", answer), source=src
             )
             answer = self.revise(prompt, answer, msg.payload, directive)
+            yield answer
 
             # hierarchical phase: a leader forms, directs, and steps down
             if (step + 1) % self.period == 0:
@@ -62,5 +66,3 @@ class HierarchyAgent(LLMAgent):
                     self.direct(prompt, answers) if self.rank == leader else None,
                     root=leader,
                 )
-
-        return answer

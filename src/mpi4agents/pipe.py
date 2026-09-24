@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+
 from mpi4agents.base import LLMAgent, MPIMessage
 
 
@@ -27,14 +29,13 @@ class PipeAgent(LLMAgent):
             "If the RESPONSE is empty, give an initial answer.",
         )
 
-    def run(self, prompt: str) -> str:
+    def irun(self, prompt: str) -> Iterator[str]:
         # all stages prepare context before the answer reaches them
         context = self.context(prompt)
 
         answer = "" if self.rank == 0 else self.recv(source=self.rank - 1).payload
         answer = self.refine(prompt, context, answer)
+        yield answer
 
         if self.rank < self.size - 1:
             self.send(dest=self.rank + 1, msg=MPIMessage(self.rank, "ANSWER", answer))
-
-        return answer

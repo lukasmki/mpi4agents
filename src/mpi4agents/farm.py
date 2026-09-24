@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+
 from mpi4py import MPI
 from pydantic_ai.models import Model
 
@@ -38,7 +40,7 @@ class FarmAgent(LLMAgent):
             "Combine the subtask RESULTs into a complete answer to the PROMPT.",
         )
 
-    def manage(self, prompt: str) -> str:
+    def manage(self, prompt: str) -> Iterator[str]:
         tasks = self.plan(prompt)
         results: list[str] = [""] * len(tasks)
         next_task = 0
@@ -61,9 +63,9 @@ class FarmAgent(LLMAgent):
             busy -= 1
             busy += dispatch(msg.sender)
 
-        return self.synthesize(prompt, tasks, results)
+        yield self.synthesize(prompt, tasks, results)
 
-    def work(self, prompt: str) -> str:
+    def work(self, prompt: str) -> Iterator[str]:
         log = []
         while True:
             msg = self.recv(source=0)
@@ -73,7 +75,8 @@ class FarmAgent(LLMAgent):
             result = self.solve(prompt, task)
             self.send(dest=0, msg=MPIMessage(self.rank, "RESULT", (index, result)))
             log.append(f"SUBTASK {index}: {task}\n\n{result}")
-        return "\n\n".join(log)
+            yield log[-1]
+        yield "\n\n".join(log)
 
-    def run(self, prompt: str) -> str:
-        return self.manage(prompt) if self.rank == 0 else self.work(prompt)
+    def irun(self, prompt: str) -> Iterator[str]:
+        yield from self.manage(prompt) if self.rank == 0 else self.work(prompt)

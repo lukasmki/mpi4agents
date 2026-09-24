@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+
 from mpi4py import MPI
 from pydantic_ai.models import Model
 
@@ -45,15 +47,17 @@ class AdversarialAgent(LLMAgent):
             "your answer and make it more convincing. Reply with the revised answer only.",
         )
 
-    def run(self, prompt: str) -> str:
+    def irun(self, prompt: str) -> Iterator[str]:
         if self.is_proposer:
             answer = self.draft(prompt)
+            yield answer
             for iround in range(self.rounds):
                 critic = self.opponent(iround)
                 self.send(dest=critic, msg=MPIMessage(self.rank, "ANSWER", answer))
                 attack = self.recv(source=critic).payload
                 answer = self.defend(prompt, answer, attack)
-            return answer
+                yield answer
+            return
 
         attacks: list[str] = []
         for iround in range(self.rounds):
@@ -62,4 +66,5 @@ class AdversarialAgent(LLMAgent):
             attack = self.attack(prompt, answer, attacks)
             self.send(dest=proposer, msg=MPIMessage(self.rank, "ATTACK", attack))
             attacks.append(attack)
-        return "\n\n".join(f"**Attack {i}:** {a}" for i, a in enumerate(attacks))
+            yield attack
+        yield "\n\n".join(f"**Attack {i}:** {a}" for i, a in enumerate(attacks))

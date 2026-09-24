@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+
 from mpi4py import MPI
 from pydantic_ai.models import Model
 
@@ -55,15 +57,18 @@ class HaloAgent(LLMAgent):
             from_right.payload if from_right else None,
         )
 
-    def run(self, prompt: str) -> str:
+    def irun(self, prompt: str) -> Iterator[str]:
         titles = self.bcast(self.outline(prompt) if self.rank == 0 else None)
 
         section = self.write(prompt, titles, None, None, "")
+        yield section
         for _ in range(self.steps):
             left, right = self.exchange(section)
             section = self.write(prompt, titles, left, right, section)
+            yield section
 
         sections = self.gather(section)
         if self.rank == 0:
-            return "\n\n".join(f"## {t}\n\n{s}" for t, s in zip(titles, sections))
-        return f"## {titles[self.rank]}\n\n{section}"
+            yield "\n\n".join(f"## {t}\n\n{s}" for t, s in zip(titles, sections))
+        else:
+            yield f"## {titles[self.rank]}\n\n{section}"

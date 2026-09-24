@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+
 from mpi4agents.base import LLMAgent, MPIMessage
 
 
@@ -21,16 +23,16 @@ class TreeAgent(LLMAgent):
             "Keep every correct point, drop duplicates and resolve contradictions.",
         )
 
-    def run(self, prompt: str) -> str:
+    def irun(self, prompt: str) -> Iterator[str]:
         answer = self.draft(prompt)
+        yield answer
 
         # wait on the subtree below, then merge it into this rank's answer
         if children := self.children():
             answers = [answer] + [self.recv(source=c).payload for c in children]
             answer = self.merge(prompt, answers)
+            yield answer
 
         # forward the merged subtree answer to the parent
         if (parent := self.parent()) is not None:
             self.send(dest=parent, msg=MPIMessage(self.rank, "PARTIAL", answer))
-
-        return answer

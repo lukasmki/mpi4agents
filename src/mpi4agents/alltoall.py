@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+
 from mpi4py import MPI
 from pydantic_ai.models import Model
 
@@ -31,8 +33,9 @@ class AllToAllAgent(LLMAgent):
             "Revise YOUR ANSWER using the FEEDBACK you agree with. Reply with the revised answer only.",
         )
 
-    def run(self, prompt: str) -> str:
+    def irun(self, prompt: str) -> Iterator[str]:
         answer = self.draft(prompt)
+        yield answer
         for _ in range(self.rounds):
             answers = self.allgather(answer)
             # outbox[i] is the critique meant only for rank i
@@ -46,4 +49,4 @@ class AllToAllAgent(LLMAgent):
             feedback = [f for f in inbox if f is not None]
             if feedback:
                 answer = self.revise(prompt, answer, feedback)
-        return answer
+                yield answer

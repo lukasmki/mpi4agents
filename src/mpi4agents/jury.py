@@ -1,5 +1,6 @@
 import re
 from collections import Counter
+from collections.abc import Iterator
 
 from mpi4agents.base import LLMAgent
 
@@ -26,8 +27,9 @@ class JuryAgent(LLMAgent):
         n = int(match.group()) if match else 0
         return choices[n] if n < len(choices) else choices[0]
 
-    def run(self, prompt: str) -> str:
+    def irun(self, prompt: str) -> Iterator[str]:
         candidate = self.propose(prompt)
+        yield candidate
         candidates = self.allgather(candidate)
         votes = self.allgather(self.vote(prompt, candidates))
 
@@ -35,5 +37,6 @@ class JuryAgent(LLMAgent):
         winner = min(tally, key=lambda i: (-tally[i], i))
         if self.rank == 0:
             tally_str = ", ".join(f"rank {i}: {tally[i]}" for i in sorted(tally))
-            return f"**Winner: rank {winner}** ({tally_str})\n\n{candidates[winner]}"
-        return f"Voted for rank {votes[self.rank]}\n\n{candidate}"
+            yield f"**Winner: rank {winner}** ({tally_str})\n\n{candidates[winner]}"
+        else:
+            yield f"Voted for rank {votes[self.rank]}\n\n{candidate}"

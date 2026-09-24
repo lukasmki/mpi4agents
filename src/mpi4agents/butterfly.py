@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+
 from mpi4py import MPI
 from pydantic_ai.models import Model
 
@@ -26,8 +28,9 @@ class ButterflyAgent(LLMAgent):
             "Keep every correct point, drop duplicates and resolve contradictions.",
         )
 
-    def run(self, prompt: str) -> str:
+    def irun(self, prompt: str) -> Iterator[str]:
         answer = self.draft(prompt)
+        yield answer
 
         stage = 0
         while (1 << stage) < self.size:
@@ -42,6 +45,5 @@ class ButterflyAgent(LLMAgent):
                 [answer, msg.payload] if self.rank < partner else [msg.payload, answer]
             )
             answer = self.merge(prompt, pair)
+            yield answer
             stage += 1
-
-        return answer

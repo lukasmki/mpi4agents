@@ -14,6 +14,9 @@ The :file:`examples/` directory has one script per agent, numbered in the same o
 Each rank prints its result under a ``Rank N`` heading. The ranks print independently, so
 the headings can appear in any order.
 
+Add ``-v`` (``--verbose``) to also print every intermediate answer as it is produced, each
+under a ``Rank N · step i`` heading. The last step on each rank is its final answer.
+
 Some agents take extra options, such as ``--rounds`` or ``--steps``. Run a script with
 ``--help`` to list them.
 
@@ -57,3 +60,15 @@ Every rank must construct the same agent and call ``run`` with the same prompt:
 What ``run`` returns depends on the rank and the pattern. For example, a
 :class:`~mpi4agents.jury.JuryAgent` returns the verdict on rank 0 and each juror's vote on
 the other ranks. Each agent's page describes its return value.
+
+To watch an agent work, iterate :meth:`~mpi4agents.base.BaseAgent.irun` instead. It
+yields each intermediate answer as the rank produces it, and the final answer (what
+``run`` returns) last:
+
+.. code-block:: python
+
+   for answer in agent.irun("Which sorting algorithm should I use for nearly sorted data?"):
+       print(f"Rank {agent.rank}: {answer}")
+
+Every rank must iterate ``irun`` to completion, since stopping early skips communication
+steps the other ranks are waiting on.

@@ -6,7 +6,7 @@ One agent per rank
 
 MPI starts the same program on every rank. Each rank constructs an agent from a
 communicator, typically ``MPI.COMM_WORLD``, and every rank calls
-:meth:`~mpi4agents.base.BaseAgent.run`. Inside ``run``, an agent uses
+:meth:`~mpi4agents.base.BaseAgent.run`. Inside ``irun``, an agent uses
 :attr:`~mpi4agents.base.BaseAgent.rank` and :attr:`~mpi4agents.base.BaseAgent.size` to
 decide what role it plays and which ranks it talks to.
 
@@ -45,9 +45,13 @@ Writing a new agent
 -------------------
 
 Subclass :class:`~mpi4agents.base.LLMAgent`, write small methods that each make one LLM
-call, and implement ``run`` using the communication methods:
+call, and implement ``irun`` using the communication methods. ``irun`` is a generator
+that yields intermediate answers as they are produced and yields the final answer last;
+:meth:`~mpi4agents.base.BaseAgent.run` iterates it and returns that last value:
 
 .. code-block:: python
+
+   from collections.abc import Iterator
 
    from mpi4agents.base import LLMAgent
 
@@ -55,6 +59,6 @@ call, and implement ``run`` using the communication methods:
    class EchoAgent(LLMAgent):
        """Rank 0 answers, then broadcasts its answer to every rank"""
 
-       def run(self, prompt: str) -> str:
+       def irun(self, prompt: str) -> Iterator[str]:
            answer = self.ask(prompt, "Answer concisely.") if self.rank == 0 else None
-           return self.bcast(answer)
+           yield self.bcast(answer)

@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+
 from mpi4py import MPI
 from pydantic_ai.models import Model
 
@@ -33,7 +35,7 @@ class TokenAgent(LLMAgent):
             "Describe the change from BEFORE to AFTER in one short sentence.",
         )
 
-    def run(self, prompt: str) -> str:
+    def irun(self, prompt: str) -> Iterator[str]:
         dst = (self.rank + 1) % self.size
         src = (self.rank - 1) % self.size
 
@@ -48,10 +50,11 @@ class TokenAgent(LLMAgent):
                 (self.rank, self.summarize(token["answer"], answer))
             )
             token["answer"] = answer
+            yield answer
 
             self.send(dest=dst, msg=MPIMessage(self.rank, "TOKEN", token))
 
+        # the other ranks already yielded their last revision
         if self.rank == 0:
             token = self.recv(source=src).payload
-
-        return token["answer"]
+            yield token["answer"]

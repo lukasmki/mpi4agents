@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+
 from mpi4py import MPI
 from pydantic_ai.models import Model
 
@@ -64,7 +66,7 @@ class MorphAgent(LLMAgent):
             "answer. Reply with the full revised answer only.",
         )
 
-    def run(self, prompt: str) -> str:
+    def irun(self, prompt: str) -> Iterator[str]:
         draft = ""
         history = []
         for iround in range(self.rounds):
@@ -79,9 +81,10 @@ class MorphAgent(LLMAgent):
                 self.edit(prompt, draft, notes) if self.rank == editor else None,
                 root=editor,
             )
+            yield f"Round {iround} ({role}):\n\n{note or draft}"
 
         roles_str = " → ".join(history)
-        return (
+        yield (
             f"Roles: {roles_str}\n\n{draft}"
             if self.rank == 0
             else f"Roles: {roles_str}"

@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+
 from mpi4py import MPI
 from pydantic_ai.models import Model
 
@@ -41,12 +43,14 @@ class GridAgent(LLMAgent):
                 neighbors[name] = self.sendrecv(dest=dst, msg=msg, source=src).payload
         return neighbors
 
-    def run(self, prompt: str) -> str:
+    def irun(self, prompt: str) -> Iterator[str]:
         position = self.draft(prompt)
+        yield position
         for _ in range(self.steps):
             position = self.update(prompt, position, self.exchange(position))
+            yield position
 
         cells = self.gather((self.coords, position))
+        # the other ranks already yielded their final position
         if self.rank == 0:
-            return "\n\n".join(f"### Cell {tuple(c)}\n\n{p}" for c, p in cells)
-        return position
+            yield "\n\n".join(f"### Cell {tuple(c)}\n\n{p}" for c, p in cells)

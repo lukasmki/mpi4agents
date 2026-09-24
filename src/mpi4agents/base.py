@@ -1,4 +1,5 @@
 from abc import ABC
+from collections.abc import Iterator
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
@@ -42,7 +43,9 @@ class BaseAgent(ABC):
     """An agent bound to one MPI rank
 
     Wraps the mpi4py lowercase (pickle-based) point-to-point and collective operations.
-    Subclasses implement :meth:`run`, which every rank calls with the same prompt.
+    Subclasses implement :meth:`irun`, a generator that yields intermediate answers as they
+    are produced and yields the final answer last. Every rank calls :meth:`run` (or iterates
+    :meth:`irun`) with the same prompt.
 
     Args:
         comm: communicator the agent belongs to
@@ -114,9 +117,18 @@ class BaseAgent(ABC):
         """Block until all ranks reach this point"""
         self.comm.barrier()
 
-    def run(self, prompt: str):
-        """Run the agent's communication pattern. Must be called on every rank."""
+    def irun(self, prompt: str) -> Iterator[Any]:
+        """Run the agent's communication pattern, yielding intermediate answers and then the
+        final answer. Must be iterated to completion on every rank."""
         raise NotImplementedError
+
+    def run(self, prompt: str) -> Any:
+        """Run :meth:`irun` to completion and return the final answer. Must be called on
+        every rank."""
+        answer = None
+        for answer in self.irun(prompt):
+            pass
+        return answer
 
 
 class LLMAgent(BaseAgent):
@@ -166,9 +178,10 @@ class EventAgent(LLMAgent):
 
         return decorator
 
-    def run(self, prompt: str):
-        """Receive messages forever and call the matching handler"""
+    def irun(self, prompt: str) -> Iterator[Any]:
+        """Receive messages forever, call the matching handler and yield its result"""
         while True:
             msg = self.recv()
             if handler := self.handlers.get(msg.kind):
-                handler(msg)
+                if (result := handler(msg)) is not None:
+                    yield result

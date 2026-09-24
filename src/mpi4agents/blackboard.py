@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+
 from mpi4py import MPI
 from pydantic_ai.models import Model
 
@@ -35,7 +37,7 @@ class BlackboardAgent(LLMAgent):
             "Using the BLACKBOARD entries, write the final answer to the PROMPT.",
         )
 
-    def serve(self, prompt: str) -> str:
+    def serve(self, prompt: str) -> Iterator[str]:
         board: list[tuple[int, str]] = []
         active = self.size - 1
         while active:
@@ -48,9 +50,9 @@ class BlackboardAgent(LLMAgent):
                 board.append((msg.sender, msg.payload))
             elif msg.kind == "DONE":
                 active -= 1
-        return self.summarize(prompt, board)
+        yield self.summarize(prompt, board)
 
-    def source(self, prompt: str) -> str:
+    def source(self, prompt: str) -> Iterator[str]:
         entries = []
         for _ in range(self.rounds):
             self.send(dest=0, msg=MPIMessage(self.rank, "READ", None))
@@ -58,8 +60,9 @@ class BlackboardAgent(LLMAgent):
             entry = self.contribute(prompt, board)
             self.send(dest=0, msg=MPIMessage(self.rank, "POST", entry))
             entries.append(entry)
+            yield entry
         self.send(dest=0, msg=MPIMessage(self.rank, "DONE", None), tag=Tag.SYS)
-        return "\n\n".join(entries)
+        yield "\n\n".join(entries)
 
-    def run(self, prompt: str) -> str:
-        return self.serve(prompt) if self.rank == 0 else self.source(prompt)
+    def irun(self, prompt: str) -> Iterator[str]:
+        yield from self.serve(prompt) if self.rank == 0 else self.source(prompt)

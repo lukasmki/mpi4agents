@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+
 from mpi4py import MPI
 from pydantic_ai.models import Model
 
@@ -30,8 +32,9 @@ class BSPAgent(LLMAgent):
         )
         return None if output.strip() == UNCHANGED else output
 
-    def run(self, prompt: str) -> str:
+    def irun(self, prompt: str) -> Iterator[str]:
         answer = self.draft(prompt)
+        yield answer
         inbox = self.allgather(answer)
 
         for _ in range(self.max_supersteps):
@@ -40,6 +43,7 @@ class BSPAgent(LLMAgent):
             revised = self.revise(prompt, answer, others) if others else None
             if revised is not None:
                 answer = revised
+                yield answer
 
             # communicate
             inbox = self.allgather(answer)
@@ -47,5 +51,3 @@ class BSPAgent(LLMAgent):
             # synchronize: the allreduce is the superstep barrier and the convergence check
             if self.allreduce(revised is None, op=MPI.LAND):
                 break
-
-        return answer
