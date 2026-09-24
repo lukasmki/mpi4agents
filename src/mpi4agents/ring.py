@@ -1,16 +1,26 @@
+from typing import Any
+
 from mpi4py import MPI
+from pydantic_ai import Agent
+from pydantic_ai.models import Model
+
 from mpi4agents.base import BaseAgent, MPIMessage
 
 
 class RingAgent(BaseAgent):
-    def __init__(self, rank: int, comm: MPI.Comm):
-        super().__init__(rank=rank, comm=comm)
+    def __init__(self, comm: MPI.Comm, model: Model):
+        super().__init__(comm=comm)
+        self.agent = Agent(model=model)
+
+    def process(self, data: dict[str, Any]):
+        pass
 
     def run(self, prompt: str | None = None):
         # get answer
-        my_data = {"origin": self.rank, "prompt": prompt}
 
-        msg = MPIMessage(self.rank, "TASK", my_data)
+        data = {"origin": self.rank, "prompt": prompt}
+
+        msg = MPIMessage(self.rank, "TASK", data)
         dst = (self.rank + 1) % self.size
         src = (self.rank - 1) % self.size
         for istep in range(self.size - 1):

@@ -1,10 +1,10 @@
-from pydantic_ai import Agent
-from mpi4py.MPI import ANY_TAG
-from mpi4py import MPI
-from typing import Any, Annotated
-from dataclasses import dataclass
 from abc import ABC
+from dataclasses import dataclass
 from enum import Enum
+from typing import Any
+
+from mpi4py import MPI
+from mpi4py.MPI import ANY_TAG
 
 
 class Tag(Enum):
@@ -29,8 +29,8 @@ class MPIMessage:
 
 
 class BaseAgent(ABC):
-    def __init__(self, rank: int, comm: MPI.Comm):
-        self.rank: int = rank
+    def __init__(self, comm: MPI.Comm):
+        self.rank: int = comm.Get_rank()
         self.size: int = comm.Get_size()
         self.comm: MPI.Comm = comm
 

@@ -24,10 +24,3 @@ Some other communication patterns:
 4. Intermittent hierarchy
 5. Adversarial/Co-evolutionary
 6. Role-morphing
-
-### Manager-Worker
-
-1. The manager agent decomposes a complex task into many substasks handled by the worker agents.
-2. Each worker agent lives in a particular rank and retains its multi-turn message history.
-3. Specialized worker agents live in a subset of ranks and may be called by worker agents.
-4. At the end of a run, the manager agent compiles the worker agent results into a final result.
