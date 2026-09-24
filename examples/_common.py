@@ -1,4 +1,4 @@
-TEST = False
+TEST = True
 
 if TEST:
     from pydantic_ai.models.test import TestModel
