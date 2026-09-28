@@ -39,3 +39,14 @@ The examples share the model defined in [examples/_common.py](examples/_common.p
 ```sh
 mpirun -n 4 uv run examples/3-tree.py --prompt "Why is the sky blue?"
 ```
+
+## Benchmarks
+
+[bench/](bench/README.md) runs every agent on MMLU and compares each one with a single-call
+baseline:
+
+```sh
+uv sync --group bench
+mpirun -n 4 uv run --group bench bench/harness.py --limit 100
+uv run --group bench bench/evaluate.py bench/results/random
+```

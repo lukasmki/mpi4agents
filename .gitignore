@@ -17,3 +17,7 @@ wheels/
 
 # Docs
 _build/
+
+# Benchmark
+bench/data/
+bench/results/
