@@ -21,6 +21,12 @@ On first use, the harness downloads the split from the Hugging Face
 [`cais/mmlu`](https://huggingface.co/datasets/cais/mmlu) dataset into `bench/data/`
 (3.5 MB for `test`).
 
+If linking to Cray MPICH on Perlmutter, also run this command to use `srun` instead of `mpirun`
+
+```sh
+MPICC="cc -shared" uv pip install --force-reinstall --no-cache-dir --no-binary=mpi4py mpi4py
+```
+
 ## Running
 
 Every command runs under `mpirun`, and every rank runs the same script. The default `--model
