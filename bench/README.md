@@ -38,7 +38,8 @@ mpirun -n 4 uv run --group bench bench/harness.py --limit 50
 ```
 
 To use a model served by an OpenAI-compatible server (llama.cpp, vLLM, Ollama), pass its URL
-with `--base-url`:
+with `--base-url`. Structured output (used by `farm` and `halo`) is requested as a JSON schema, so
+the server doesn't need tool calling enabled:
 
 ```sh
 mpirun -n 4 uv run --group bench bench/harness.py \

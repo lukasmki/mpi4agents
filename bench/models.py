@@ -1,5 +1,6 @@
 """Models for the benchmark. Every rank wraps its model in a MeteredModel, which counts
-requests and tokens, applies the run's sampling settings and retries transient API errors."""
+requests and tokens, applies the run's sampling settings and retries transient API errors.
+"""
 
 import asyncio
 import os
@@ -11,6 +12,7 @@ from pydantic_ai.models import Model, infer_model
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.models.wrapper import WrapperModel
+from pydantic_ai.profiles import ModelProfile
 from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.settings import ModelSettings, merge_model_settings
 
@@ -107,9 +109,10 @@ def build_model(name: str, base_url: str | None = None, seed: int = 0) -> Model:
 
     ``test`` is pydantic-ai's TestModel and ``random`` is a RandomModel seeded with seed; both
     run offline. With base_url, name is a model served by an OpenAI-compatible server such as
-    llama.cpp, vLLM or Ollama. Otherwise name is a pydantic-ai model id such as
-    ``openai:gpt-5`` or ``anthropic:claude-sonnet-5``, with its API key read from the
-    environment.
+    llama.cpp, vLLM or Ollama, and structured output is requested as a JSON schema rather than
+    a tool call, so the server needs no tool-call parser. Otherwise name is a pydantic-ai model
+    id such as ``openai:gpt-5`` or ``anthropic:claude-sonnet-5``, with its API key read from
+    the environment.
     """
     if name == "test":
         return TestModel()
@@ -120,5 +123,6 @@ def build_model(name: str, base_url: str | None = None, seed: int = 0) -> Model:
         return OpenAIChatModel(
             model_name=name,
             provider=OpenAIProvider(base_url=base_url, api_key=api_key),
+            profile=ModelProfile(default_structured_output_mode="native"),
         )
     return infer_model(name)
