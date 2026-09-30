@@ -23,6 +23,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 bench = [
+    "matplotlib>=3.11.2",
     "pyarrow>=25.0.1",
 ]
 dev = [
